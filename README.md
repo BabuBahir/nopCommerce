@@ -354,7 +354,7 @@ Settings live on the plugin configuration page and are stored per store, so each
 | Setting | Default | Notes |
 |---|---|---|
 | API key | generated | At least 32 characters, because it also signs bearer tokens. Use the generate button. |
-| Require a credential for reads | off | When off, anonymous callers get `401` on nothing — but see the warning below. |
+| Require a credential for reads | off | When off, back-office reads need no credential at all — including the customer and order reads listed in the warning below. |
 | Rate limit per minute | 60 | Per client per minute. |
 | Admin token lifetime | 24 hours | Applies to tokens issued after the change. |
 | Customer token lifetime | 7 days | Applies to tokens issued after the change. |
