@@ -8,10 +8,13 @@ services:
             - nopcommerce_database
     nopcommerce_database:
         image: "postgres:latest"
-        container_name: nopcommerce_postgres_server
+        container_name: nopcommerce_postgres_server 
         restart: "always"
         environment:
+          POSTGRES_DB: nopcommerce
+          POSTGRES_USER: postgres
           POSTGRES_PASSWORD: "nopCommerce_db_password"
 
 volumes:
-  nopcommerce_data:            
+  nopcommerce_data:           
+  nopcommerce_keys:  
