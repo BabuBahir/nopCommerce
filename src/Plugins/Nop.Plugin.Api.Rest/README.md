@@ -5,10 +5,12 @@ and a storefront-facing product view. It also issues customer tokens, so a clien
 customer's own data without holding the admin API key.
 
 Installation
-1. Add the project to the solution: dotnet sln src\NopCommerce.sln add Plugins\Nop.Plugin.Api.Rest\Nop.Plugin.Api.Rest.csproj
-2. Build the solution.
-3. In the nopCommerce admin, install and enable the plugin (Configuration -> Local plugins).
-4. Open the plugin configuration page (Configuration -> Local plugins -> Configure) and generate an API key.
+1. Build the solution: dotnet build src\NopCommerce.sln
+2. Run the store and complete the install wizard. The plugin is listed in App_Data/plugins.json, so
+   nopCommerce installs and enables it on first run - no "dotnet sln add" step is needed, the project is
+   already in the solution.
+3. Open the plugin configuration page (Administration -> Plugins -> REST API -> Configure) and generate an
+   API key.
 
 Plugin-contained Swagger
 - Swagger UI: /swagger/api-rest/index.html
