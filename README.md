@@ -28,26 +28,141 @@ compiled into the published Docker image and ships enabled.
 
 The image is published to GitHub Container Registry and is **public** — no login is required to pull it.
 
+**1. Pull the image.**
+
+```bash
+docker pull ghcr.io/babubahir/nopcommercerestapi:latest
+```
+
+**2. Confirm it arrived** (about 362 MB compressed).
+
+```bash
+docker images ghcr.io/babubahir/nopcommercerestapi
+```
+
+**3. Run it.** If port 80 is already taken on your machine, publish a different host port instead — the
+container always listens on 80 internally.
+
 ```bash
 docker run -d --name nopcommerce -p 80:80 ghcr.io/babubahir/nopcommercerestapi:latest
+```
+
+**4. Watch it start.**
+
+```bash
+docker logs -f nopcommerce
 ```
 
 Then open <http://localhost> and complete the nopCommerce install wizard on first visit.
 
 The image contains the web application only — **there is no database inside it**. During the wizard, point
-nopCommerce at an MSSQL, PostgreSQL or MySQL server you already run. If you want the database containerised
-too, the compose files in this repository bundle one alongside the app:
-
-```bash
-docker compose up            # app + MSSQL 2019, http://localhost
-```
-
-`mysql-docker-compose.yml` and `postgresql-docker-compose.yml` are provided as alternatives.
+nopCommerce at an MSSQL, PostgreSQL or MySQL server you already run. See
+[Run the published image with a database](#run-the-published-image-with-a-database) for a compose file that
+starts one alongside the image.
 
 Once the store is installed and the REST API plugin is configured, the API is live:
 
 ```
 http://localhost/swagger/api-rest/index.html
+```
+
+### If you need to log in
+
+The package is public, so a signed-out `docker pull` works. If it is ever made private, authenticate first:
+
+```bash
+docker login ghcr.io -u BabuBahir
+```
+
+The password is a GitHub **personal access token** with the `read:packages` scope — your account password
+will not work against a registry.
+
+### On Apple Silicon and other arm64 machines
+
+The published image is **`linux/amd64` only**, because the publish workflow builds without a platform
+matrix. On an arm64 host Docker will fail the pull with *no matching manifest for linux/arm64*. Ask for the
+amd64 build explicitly, and run it the same way:
+
+```bash
+docker pull --platform linux/amd64 ghcr.io/babubahir/nopcommercerestapi:latest
+docker run --platform linux/amd64 -d --name nopcommerce -p 80:80 \
+  ghcr.io/babubahir/nopcommercerestapi:latest
+```
+
+Docker Desktop emulates amd64 here, so it works but runs more slowly than native.
+
+### Everyday commands
+
+```bash
+docker logs -f nopcommerce            # follow the log
+docker stop nopcommerce               # stop, keep the container
+docker start nopcommerce              # start it again
+docker rm -f nopcommerce              # remove it
+```
+
+### Keep your data before you remove the container
+
+nopCommerce writes uploads, logs, database backups and data-protection keys **inside the container**. A
+`docker rm` discards all of them, and losing the data-protection keys invalidates the cookies of every
+signed-in user. Mount the paths you care about to keep them:
+
+```bash
+docker run -d --name nopcommerce -p 80:80 \
+  -v nopcommerce-keys:/app/App_Data/DataProtectionKeys \
+  -v nopcommerce-uploads:/app/wwwroot/images/uploaded \
+  -v nopcommerce-logs:/app/logs \
+  ghcr.io/babubahir/nopcommercerestapi:latest
+```
+
+### Run the published image with a database
+
+The compose files in this repository (`docker-compose.yml`, `mysql-docker-compose.yml`,
+`postgresql-docker-compose.yml`) use `build: .`, so they **build the image from source** rather than
+pulling the published one. To run the published image with a database, use this instead:
+
+```yaml
+services:
+  nopcommerce_web:
+    image: ghcr.io/babubahir/nopcommercerestapi:latest
+    container_name: nopcommerce
+    ports:
+      - "80:80"
+    volumes:
+      - nopcommerce-keys:/app/App_Data/DataProtectionKeys
+      - nopcommerce-uploads:/app/wwwroot/images/uploaded
+    depends_on:
+      - nopcommerce_database
+
+  nopcommerce_database:
+    image: "mcr.microsoft.com/mssql/server:2019-latest"
+    container_name: nopcommerce_mssql_server
+    environment:
+      SA_PASSWORD: "nopCommerce_db_password"
+      ACCEPT_EULA: "Y"
+      MSSQL_PID: "Express"
+
+volumes:
+  nopcommerce-keys:
+  nopcommerce-uploads:
+```
+
+The two named volumes are what [Keep your data](#keep-your-data-before-you-remove-the-container) asks for —
+without them, replacing the container signs every user out and discards uploaded product images.
+
+```bash
+docker compose up
+```
+
+In the install wizard, use `nopcommerce_database` as the server name — that is the service name on the
+compose network, not `localhost`. The database is not initialised for you, so create an empty database
+first and let the wizard install the schema into it.
+
+To build from source with a database instead, the repository's own files are unchanged:
+
+```bash
+docker compose up            # builds the image, app + MSSQL 2019, http://localhost
+docker compose -f mysql-docker-compose.yml up
+docker compose -f postgresql-docker-compose.yml up
 ```
 
 ## Docker image reference
@@ -57,8 +172,13 @@ http://localhost/swagger/api-rest/index.html
 | Image | `ghcr.io/babubahir/nopcommercerestapi` |
 | Visibility | public, pulls anonymously |
 | Base image | `mcr.microsoft.com/dotnet/aspnet:10.0-alpine` |
+| Platform | `linux/amd64` only — see [Apple Silicon](#on-apple-silicon-and-other-arm64-machines) |
+| Size | ~362 MB compressed, 12 layers |
 | Port | `80` (`ASPNETCORE_URLS=http://+:80`) |
 | Includes | the whole `NopCommerce.sln`, so the REST API plugin is already built in |
+
+Tags currently published: `latest` and `develop`. Browse them in the
+[GitHub Packages UI](https://github.com/BabuBahir/nopCommerceRestApi/pkgs/container/nopcommercerestapi).
 
 ### Tags
 
