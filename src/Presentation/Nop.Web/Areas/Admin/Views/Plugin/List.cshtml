@@ -210,13 +210,6 @@
                                 {
                                     Title = T("Admin.Configuration.Plugins.AdditionalInfo").Text,
                                     Render = new RenderCustom("renderColumnFriendlyName")
-                                },
-                                new ColumnProperty(nameof(PluginModel.Installed))
-                                {
-                                    Title = T("Admin.Configuration.Plugins.Fields.Installation").Text,
-                                    Width = "100",
-                                    ClassName =  NopColumnClassDefaults.Button,
-                                    Render = new RenderCustom("renderColumnInstalled")
                                 }
                             }
                         })
