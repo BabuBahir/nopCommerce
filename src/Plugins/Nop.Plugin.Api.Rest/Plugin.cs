@@ -2,6 +2,7 @@
 using Nop.Services.Configuration;
 using Nop.Services.Localization;
 using Nop.Services.Plugins;
+using Nop.Services.Security;
 using Nop.Web.Framework;
 using Nop.Web.Framework.Mvc.Routing;
 using System.Threading.Tasks;
@@ -12,6 +13,7 @@ namespace Nop.Plugin.Api.Rest
     {
         #region Fields
 
+        private readonly IEncryptionService _encryptionService;
         private readonly ILocalizationService _localizationService;
         private readonly INopUrlHelper _nopUrlHelper;
         private readonly ISettingService _settingService;
@@ -22,11 +24,13 @@ namespace Nop.Plugin.Api.Rest
 
         public Plugin(ILocalizationService localizationService,
             INopUrlHelper nopUrlHelper,
-            ISettingService settingService)
+            ISettingService settingService,
+            IEncryptionService encryptionService)
         {
             _localizationService = localizationService;
             _nopUrlHelper = nopUrlHelper;
             _settingService = settingService;
+            _encryptionService = encryptionService;
         }
 
         #endregion
@@ -75,9 +79,15 @@ namespace Nop.Plugin.Api.Rest
             //set. That is how a "Require a credential for reads" that had been ticked and saved could
             //still leave the customer and order reads anonymous: the save had been discarded, nothing was
             //written, and nothing reported that the value being used was an unstored default.
+            // the API key doubles as the signing secret for the bearer tokens, so it cannot ship empty:
+            // a store installed with no key has both token endpoints answering 503 and every protected
+            // route answering 401, because nothing can be signed without it. Generate one here rather
+            // than leaving the merchant to find that out from an API call.
             await _settingService.SaveSettingAsync(new ApiRestSettings
             {
-                ApiKey = string.Empty,
+                //32 bytes, base64 encoded to 44 characters, which clears the 32 character minimum a
+                //signing secret has to meet. Same value the configuration page generates.
+                ApiKey = _encryptionService.CreateSaltKey(32),
                 RateLimitPerMinute = 60,
                 RequireApiKeyForReads = false,
                 AdminTokenLifetimeHours = 24,
